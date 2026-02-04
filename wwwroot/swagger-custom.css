@@ -1,0 +1,85 @@
+/* Custom Swagger UI Styling */
+.swagger-ui .topbar {
+    background-color: #1a237e !important;
+    padding: 10px 0 !important;
+}
+
+.swagger-ui .topbar .link {
+    color: white !important;
+    font-weight: bold !important;
+}
+
+.swagger-ui .scheme-container {
+    background-color: #f5f5f5 !important;
+    border: none !important;
+}
+
+.swagger-ui .opblock.opblock-post {
+    background-color: #e8f5e9 !important;
+    border-color: #4caf50 !important;
+}
+
+.swagger-ui .opblock.opblock-get {
+    background-color: #e3f2fd !important;
+    border-color: #2196f3 !important;
+}
+
+.swagger-ui .opblock.opblock-put {
+    background-color: #fff3e0 !important;
+    border-color: #ff9800 !important;
+}
+
+.swagger-ui .opblock.opblock-delete {
+    background-color: #ffebee !important;
+    border-color: #f44336 !important;
+}
+
+.swagger-ui .btn.authorize {
+    background-color: #1a237e !important;
+    color: white !important;
+    font-weight: bold !important;
+}
+
+.swagger-ui .btn.authorize:hover {
+    background-color: #0d47a1 !important;
+}
+
+.swagger-ui .opblock-tag {
+    background-color: #283593 !important;
+    color: white !important;
+    font-weight: bold !important;
+}
+
+.swagger-ui .opblock-summary {
+    font-weight: 600 !important;
+}
+
+.swagger-ui .response-col_status {
+    font-weight: bold !important;
+}
+
+/* Make execute button more visible */
+.swagger-ui .btn.execute {
+    background-color: #2196f3 !important;
+    color: white !important;
+    font-weight: bold !important;
+}
+
+.swagger-ui .btn.execute:hover {
+    background-color: #1976d2 !important;
+}
+
+/* Success response highlighting */
+.swagger-ui .response-col_status.response-col_status-200 {
+    color: #4caf50 !important;
+    font-weight: bold !important;
+}
+
+/* Error response highlighting */
+.swagger-ui .response-col_status.response-col_status-400,
+.swagger-ui .response-col_status.response-col_status-401,
+.swagger-ui .response-col_status.response-col_status-404,
+.swagger-ui .response-col_status.response-col_status-500 {
+    color: #f44336 !important;
+    font-weight: bold !important;
+}
