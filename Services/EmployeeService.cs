@@ -286,14 +286,18 @@ public class EmployeeService : IEmployeeService
         return true;
     }
 
-    public async Task<decimal> GetTotalSalaryByDepartmentAsync(int departmentId)
-    {
-        return await _context.Employees
-            .AsNoTracking()
-            .Where(e => e.DepartmentId == departmentId && 
-                       e.Status == EmploymentStatus.Active)
-            .SumAsync(e => e.Salary);
-    }
+   public async Task<decimal> GetTotalSalaryByDepartmentAsync(int departmentId)
+{
+    // ✅ SAFE: Minimal data transfer + preserves decimal precision
+    var salaries = await _context.Employees
+        .AsNoTracking()
+        .Where(e => e.DepartmentId == departmentId && 
+                   e.Status == EmploymentStatus.Active)
+        .Select(e => e.Salary) // Projects ONLY salary values
+        .ToListAsync(); // Executes query, brings values to client
+
+    return salaries.Sum(); // LINQ-to-Objects handles sum safely
+}
 
     public async Task<int> GetActiveEmployeeCountAsync()
     {
@@ -303,36 +307,39 @@ public class EmployeeService : IEmployeeService
     }
 
     public async Task<IEnumerable<EmployeeStatistics>> GetEmployeeStatisticsAsync()
-    {
-        var statistics = await _context.Employees
-            .AsNoTracking()
-            .Where(e => e.Status != EmploymentStatus.Terminated)
-            .GroupBy(e => e.DepartmentId)
-            .Select(g => new
-            {
-                DepartmentId = g.Key,
-                EmployeeCount = g.Count(),
-                AverageSalary = g.Average(e => e.Salary),
-                ActiveCount = g.Count(e => e.Status == EmploymentStatus.Active),
-                OnLeaveCount = g.Count(e => e.Status == EmploymentStatus.OnLeave)
-            })
-            .Join(
-                _context.Departments.AsNoTracking(),
-                stat => stat.DepartmentId,
-                dept => dept.Id,
-                (stat, dept) => new EmployeeStatistics
-                {
-                    DepartmentName = dept.Name,
-                    EmployeeCount = stat.EmployeeCount,
-                    AverageSalary = stat.AverageSalary,
-                    ActiveCount = stat.ActiveCount,
-                    OnLeaveCount = stat.OnLeaveCount
-                }
-            )
-            .ToListAsync();
+{
+    // ✅ Load ONLY required fields (minimal memory footprint)
+    var employeeData = await _context.Employees
+        .AsNoTracking()
+        .Where(e => e.Status != EmploymentStatus.Terminated)
+        .Select(e => new { e.DepartmentId, e.Salary, e.Status })
+        .ToListAsync();
 
-        return statistics;
-    }
+    // Get department names for referenced departments (mimics original INNER JOIN)
+    var departmentIds = employeeData.Select(e => e.DepartmentId).Distinct().ToList();
+    var departments = await _context.Departments
+        .AsNoTracking()
+        .Where(d => departmentIds.Contains(d.Id)) // NO IsActive filter (matches original JOIN behavior)
+        .ToDictionaryAsync(d => d.Id, d => d.Name);
+
+    // ✅ Client-side aggregation (preserves decimal precision for AverageSalary)
+    return employeeData
+        .GroupBy(e => e.DepartmentId)
+        .Where(g => departments.ContainsKey(g.Key)) // Maintains INNER JOIN semantics
+        .Select(g => 
+        {
+            var employees = g.ToList();
+            return new EmployeeStatistics
+            {
+                DepartmentName = departments[g.Key],
+                EmployeeCount = employees.Count,
+                AverageSalary = employees.Average(e => e.Salary), // Safe in-memory calc
+                ActiveCount = employees.Count(e => e.Status == EmploymentStatus.Active),
+                OnLeaveCount = employees.Count(e => e.Status == EmploymentStatus.OnLeave)
+            };
+        })
+        .ToList();
+}
 
     public async Task<byte[]> ExportEmployeesToExcelAsync(EmployeeFilter filter)
     {

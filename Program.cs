@@ -18,7 +18,7 @@ builder.Services.AddEndpointsApiExplorer();
 // JWT Settings
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 
-// ✅ SQLite Database (single file, no setup required)
+//  SQLite Database (single file, no setup required)
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 

@@ -20,10 +20,6 @@ public class DepartmentsController : ControllerBase
         _context = context;
     }
 
-    /// <summary>
-    /// Get all active departments
-    /// Optimized with AsNoTracking for read-only
-    /// </summary>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<Department>>> GetAll()
@@ -157,62 +153,37 @@ public class DepartmentsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<DepartmentStatisticsDto>>> GetStatistics()
     {
-        var statistics = await _context.Departments
+        var departments = await _context.Departments
             .AsNoTracking()
             .Where(d => d.IsActive)
-            .Select(d => new DepartmentStatisticsDto
+            .Include(d => d.Employees)
+            .ToListAsync();
+
+        var statistics = departments.Select(d => 
+        {
+            var employees = d.Employees
+                .Where(e => e.Status != EmploymentStatus.Terminated)
+                .ToList();
+
+            return new DepartmentStatisticsDto
             {
                 DepartmentId = d.Id,
                 DepartmentName = d.Name,
                 DepartmentCode = d.Code,
-                TotalEmployees = d.Employees.Count(),
-                ActiveEmployees = d.Employees.Count(e => e.Status == EmploymentStatus.Active),
-                AverageSalary = d.Employees.Any() ? d.Employees.Average(e => e.Salary) : 0,
-                OnLeaveEmployees = d.Employees.Count(e => e.Status == EmploymentStatus.OnLeave)
-            })
-            .ToListAsync();
+                TotalEmployees = employees.Count,
+                ActiveEmployees = employees.Count(e => e.Status == EmploymentStatus.Active),
+                OnLeaveEmployees = employees.Count(e => e.Status == EmploymentStatus.OnLeave),
+                AverageSalary = employees.Any() 
+                    ? employees.Average(e => e.Salary) 
+                    : 0
+            };
+        }).ToList();
 
         return Ok(statistics);
     }
 }
 
-public class DepartmentDetailDto
-{
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string Code { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public int? ManagerId { get; set; }
-    public bool IsActive { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
-    public int EmployeeCount { get; set; }
-}
 
-public class CreateDepartmentDto
-{
-    public string Name { get; set; } = string.Empty;
-    public string Code { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public int? ManagerId { get; set; }
-}
 
-public class UpdateDepartmentDto
-{
-    public string? Name { get; set; }
-    public string? Code { get; set; }
-    public string? Description { get; set; }
-    public int? ManagerId { get; set; }
-    public bool? IsActive { get; set; }
-}
 
-public class DepartmentStatisticsDto
-{
-    public int DepartmentId { get; set; }
-    public string DepartmentName { get; set; } = string.Empty;
-    public string DepartmentCode { get; set; } = string.Empty;
-    public int TotalEmployees { get; set; }
-    public int ActiveEmployees { get; set; }
-    public decimal AverageSalary { get; set; }
-    public int OnLeaveEmployees { get; set; }
-}
+
